@@ -7,7 +7,7 @@ from colossalai.trainer import Trainer, hooks
 from colossalai.utils import MultiTimer
 from colossalai.nn.metric import Accuracy
 from colossalai.zero.init_ctx import ZeroInitContext
-from colossalai.logging import get_dist_logger
+from colossalai.logging import get_dist_logger, disable_existing_loggers
 
 from config import CFG
 
@@ -20,6 +20,8 @@ import bentoml
 import wandb
 
 def ViT_Trainer(args: CFG):
+    assert torch.cuda.is_available()
+    disable_existing_loggers()
 
     parser = colossalai.get_default_parser()
 

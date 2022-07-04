@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+import colossalai.nn as clnn
+
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
@@ -16,7 +18,7 @@ def pair(t):
 class PreNorm(nn.Module):
     def __init__(self, dim, fn):
         super().__init__()
-        self.norm = nn.LayerNorm(dim)
+        self.norm = clnn.LayerNorm(dim)
         self.fn = fn
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
@@ -24,6 +26,7 @@ class PreNorm(nn.Module):
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout = 0.):
         super().__init__()
+        
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim),
             nn.GELU(),
@@ -31,8 +34,23 @@ class FeedForward(nn.Module):
             nn.Linear(hidden_dim, dim),
             nn.Dropout(dropout)
         )
+
+        self.linear_3d_1 = clnn.Linear(dim, hidden_dim)
+        self.activation = nn.GELU()
+        self.dropout_1 = clnn.Dropout(dropout)
+        self.linear_3d_2 = clnn.Linear(hidden_dim, dim)
+        self.dropout_2 = clnn.Dropout(dropout)
+
     def forward(self, x):
-        return self.net(x)
+        if CFG.use_3d:
+            x = self.linear_3d_1(x)
+            x = self.activation(x)
+            x = self.dropout_1(x)
+            x = self.linear_3d_2(x)
+            x = self.dropout_2(x)
+        else:
+            out = self.net(x)
+        return out
 
 class Attention(nn.Module):
     def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
@@ -44,13 +62,13 @@ class Attention(nn.Module):
         self.scale = dim_head ** -0.5
 
         self.attend = nn.Softmax(dim = -1)
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = clnn.Dropout(dropout)
 
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+        self.to_qkv = clnn.Linear(dim, inner_dim * 3, bias = False)
 
         self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
+            clnn.Linear(inner_dim, dim),
+            clnn.Dropout(dropout)
         ) if project_out else nn.Identity()
 
     def forward(self, x):
@@ -100,7 +118,7 @@ class ViT(nn.Module):
 
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
-        self.dropout = nn.Dropout(emb_dropout)
+        self.dropout = clnn.Dropout(emb_dropout)
 
         self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
 
@@ -108,8 +126,8 @@ class ViT(nn.Module):
         self.to_latent = nn.Identity()
 
         self.mlp_head = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, num_classes)
+            clnn.LayerNorm(dim),
+            clnn.Linear(dim, num_classes)
         )
 
     def forward(self, img):
@@ -145,21 +163,7 @@ def vit_32_224():
 
 if __name__ == "__main__":
 
-<<<<<<< HEAD
     v = vit_32_224()
-=======
-    v = ViT(
-        image_size = 256,
-        patch_size = 32,
-        num_classes = 1000,
-        dim = 1024,
-        depth = 6,
-        heads = 16,
-        mlp_dim = 2048,
-        dropout = 0.1,
-        emb_dropout = 0.1
-    )
->>>>>>> 1bfbd636963242e6a60651461ff7fffecef5e836
 
     img = torch.randn(1, 3, 256, 256)
 
