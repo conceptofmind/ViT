@@ -48,6 +48,12 @@ def ViT_Trainer(args: CFG):
         # ViT model with fp16 
         model = vit_32_224()
 
+    elif args.use_3d_TP == True:
+        colossalai.launch_from_torch(config='./3d_config.py')
+
+        # ViT model with 3d Tensor Parallelism
+        model = vit_32_224()
+
     else:
         colossalai.launch_from_torch(config='./colossal_config.py')
 

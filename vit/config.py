@@ -13,9 +13,22 @@ class CFG:
         metadata = {'help': 'whether to use ZeRO Offloading'}
     )
 
+    """
+    Configuration for fp16 only.
+    """
+
     use_fp16: bool = field(
         default = False,
         metadata = {'help': 'whether to use FP16'}
+    )
+
+    """
+    Configuration for 3d Tensor Parallelism.
+    """
+
+    use_3d_TP: bool = field(
+        default = False,
+        metadata = {'help': 'whether to use 3d tensor Parallelism'}
     )
 
     """
@@ -81,11 +94,7 @@ class CFG:
     """
 
     epochs: int = field(
-<<<<<<< HEAD
-        default = 100,
-=======
         default = 30,
->>>>>>> 1bfbd636963242e6a60651461ff7fffecef5e836
         metadata = {"help": "Number of epochs."}
     )
 
