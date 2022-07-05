@@ -23,17 +23,9 @@ class PreNorm(nn.Module):
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
 
-class FeedForward(nn.Module):
+class MLP(nn.Module):
     def __init__(self, dim, hidden_dim, dropout = 0.):
         super().__init__()
-        
-        self.net = nn.Sequential(
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
-        )
 
         self.linear_3d_1 = clnn.Linear(dim, hidden_dim)
         self.activation = nn.GELU()
@@ -42,15 +34,12 @@ class FeedForward(nn.Module):
         self.dropout_2 = clnn.Dropout(dropout)
 
     def forward(self, x):
-        if CFG.use_3d:
-            x = self.linear_3d_1(x)
-            x = self.activation(x)
-            x = self.dropout_1(x)
-            x = self.linear_3d_2(x)
-            x = self.dropout_2(x)
-        else:
-            out = self.net(x)
-        return out
+        x = self.linear_3d_1(x)
+        x = self.activation(x)
+        x = self.dropout_1(x)
+        x = self.linear_3d_2(x)
+        x = self.dropout_2(x)
+        return x
 
 class Attention(nn.Module):
     def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
@@ -91,7 +80,7 @@ class Transformer(nn.Module):
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
                 PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
+                PreNorm(dim, MLP(dim, mlp_dim, dropout = dropout))
             ]))
     def forward(self, x):
         for attn, ff in self.layers:
@@ -113,7 +102,7 @@ class ViT(nn.Module):
 
         self.to_patch_embedding = nn.Sequential(
             Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
-            nn.Linear(patch_dim, dim),
+            clnn.Linear(patch_dim, dim),
         )
 
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))

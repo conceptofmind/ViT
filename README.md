@@ -19,7 +19,8 @@ $ colossalai run --nproc_per_node 1 train.py --use_trainer
 - [ ] Add serving, deployment, and inference with BentoML
 - [x] Implement FP16 training
 - [x] Implement ZeRO
-- [ ] Implement Data, Pipeline, Model, and Tensor Parallelism
+- [x] Implement Data Parallelism
+- [x] Implement Tensor Parallelism
 
 ## Author:
 - Enrico Shippole
